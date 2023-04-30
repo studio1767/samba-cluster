@@ -1,0 +1,14 @@
+- name: restart samba-ad-dc
+  systemd:
+    name: samba-ad-dc
+    state: restarted
+
+- name: restart systemd-resolved
+  systemd:
+    name: systemd-resolved
+    state: restarted
+
+- name: restart chrony
+  systemd:
+    name: chrony
+    state: restarted

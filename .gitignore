@@ -1,0 +1,25 @@
+# ignore python files
+pyenv/
+__pycache__/
+
+# ignore config files - keep the templates
+config.yaml
+
+# keys and certs - only used for testing
+*crt
+*key
+*pfx
+
+# ignore terraform working state
+*.tfvars
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.*
+
+# for local work
+local/
+
+# system files
+.DS_Store
+

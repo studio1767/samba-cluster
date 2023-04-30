@@ -1,0 +1,8 @@
+
+#studio_domain = "mydomain.com"
+
+aws_profile0 = "myprofile"
+aws_region0 = "us-west-1"
+
+aws_profile1 = "myprofile"
+aws_region1 = "us-west-2"

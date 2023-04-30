@@ -1,0 +1,75 @@
+- name: install samba packages
+  apt:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+      - samba
+      - krb5-user
+      - krb5-config
+      - winbind
+      - smbclient
+
+- name: stopping services
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  loop:
+    - smbd.service
+    - nmbd.service
+    - winbind.service
+
+- name: masking services
+  systemd:
+    name: "{{ item }}"
+    masked: yes
+  loop:
+    - smbd.service
+    - nmbd.service
+    - winbind.service
+
+- name: join samba domain
+  script: scripts/samba-join.sh
+  args:
+    creates: /var/lib/samba/sysvol
+  notify:
+    - restart samba-ad-dc
+
+- name: update the dns forwarder
+  lineinfile:
+    path: /etc/samba/smb.conf
+    regex: dns forwarder
+    insertafter: '\[global]'
+    line: "\tdns forwarder = ${dns_forwarder}"
+  notify:
+    - restart samba-ad-dc
+
+- name: enable rfc2307 attributes
+  lineinfile:
+    path: /etc/samba/smb.conf
+    insertafter: "workgroup = "
+    line: "\tidmap_ldb:use rfc2307 = yes"
+  notify:
+    - restart samba-ad-dc
+
+- name: install updated kerberos config
+  file:
+    src: /var/lib/samba/private/krb5.conf
+    dest: /etc/krb5.conf
+    state: link
+    force: true
+  notify:
+    - restart samba-ad-dc
+
+- name: unmask samba ad service
+  systemd:
+    name: samba-ad-dc.service
+    masked: no
+
+- name: starting samba ad service
+  systemd:
+    name: samba-ad-dc.service
+    state: started
+    enabled: yes
+

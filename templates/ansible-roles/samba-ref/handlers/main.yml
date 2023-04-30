@@ -1,0 +1,4 @@
+- name: restart samba-ad-dc
+  systemd:
+    name: samba-ad-dc
+    state: restarted

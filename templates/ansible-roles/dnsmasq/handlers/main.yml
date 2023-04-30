@@ -1,0 +1,13 @@
+
+- name: restart dnsmasq
+  systemd:
+    name: dnsmasq
+    state: restarted
+    enabled: true
+
+- name: restart systemd-resolved
+  systemd:
+    name: systemd-resolved
+    state: restarted
+    enabled: true
+

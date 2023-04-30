@@ -1,0 +1,122 @@
+# Samba wants to listen on 0.0.0.0:53 so we need to get systemd-resolved out of the way:
+#  - setup initial /etc/resolv.conf to use the vpc dns server directly
+#  - disable stub listener
+#  - restart systemd-resolved
+
+- name: install temporary resolv.conf file
+  template:
+    src: resolv-temp.conf
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: create systemd-resolved config directory
+  file:
+    path: /usr/lib/systemd/resolved.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: disable systemd-resolved stub listener
+  template:
+    src: resolved.conf
+    dest: /usr/lib/systemd/resolved.conf.d/resolved.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart systemd-resolved
+
+- name: restart systemd-resolved
+  meta: flush_handlers
+
+- name: install samba packages
+  apt:
+    pkg:
+    - acl
+    - attr
+    - samba
+    - smbclient
+    - winbind
+    - krb5-config
+    - krb5-user
+    - dnsutils
+    - python3-setproctitle
+    state: present
+
+- name: stopping services
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+    masked: yes
+  loop:
+    - smbd.service
+    - nmbd.service
+    - winbind.service
+
+- name: provision samba
+  script: scripts/samba-provision.sh "{{ kerberos_realm }}" "{{ netbios_domain }}" "{{ admin_password }}"
+  args:
+    creates: /var/lib/samba/sysvol
+  notify:
+    - restart samba-ad-dc
+
+- name: update the dns forwarder
+  lineinfile:
+    path: /etc/samba/smb.conf
+    regex: dns forwarder
+    line: "\tdns forwarder = {{ dns_forwarder }}"
+  notify:
+    - restart samba-ad-dc
+
+- name: install updated kerberos config
+  copy:
+    remote_src: true
+    src: /var/lib/samba/private/krb5.conf
+    dest: /etc/krb5.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart samba-ad-dc
+
+- name: unmask samba ad service
+  systemd:
+    name: samba-ad-dc.service
+    masked: no
+
+- name: starting samba ad service
+  systemd:
+    name: samba-ad-dc.service
+    state: started
+    enabled: yes
+
+- name: install final resolv.conf file
+  template:
+    src: resolv.conf
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: 0644
+    attributes: '+i'
+
+- name: change time sync socket permissions
+  file:
+    path: /var/lib/samba/ntp_signd/
+    owner: root
+    group: _chrony
+    mode: 0750
+  notify:
+    - restart chrony
+
+- name: configure chrony
+  lineinfile:
+    path: /etc/chrony/chrony.conf
+    regex: ntpsigndsocket
+    line: ntpsigndsocket /var/lib/samba/ntp_signd
+  notify:
+    - restart chrony
+

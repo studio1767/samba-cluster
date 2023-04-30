@@ -1,0 +1,49 @@
+## install the needed packages
+
+- name: install dnsmasq packages
+  apt:
+    pkg:
+    - dnsmasq
+    state: present
+
+- name: upload config file
+  template:
+    src: dnsmasq.conf
+    dest: /etc/dnsmasq.d/dnsmasq.conf
+    owner: root
+    group: root
+    mode: 0640
+  notify:
+    - restart dnsmasq
+
+- name: restart dnsmasq
+  meta: flush_handlers
+
+- name: install resolv.conf file
+  template:
+    src: resolv.conf
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: 0644
+    attributes: '+i'
+
+- name: create systemd-resolved config directory
+  file:
+    path: /usr/lib/systemd/resolved.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: install systemd-resolved config
+  template:
+    src: resolved.conf
+    dest: /usr/lib/systemd/resolved.conf.d/resolved.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart systemd-resolved
+
+
