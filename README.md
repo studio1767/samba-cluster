@@ -24,7 +24,7 @@ stub resolver disabled on the gateway and samba servers, and temporary `/etc/res
 to be created during installation and then replaced with a final version once setup. It's not difficult,
 it just took a bit of trial and error to get the sequencing right.
 
-With the DHCP option set for each VPC configured to use the samba servers, new servers add to any
+With the DHCP option set for each VPC configured to use the samba servers, new servers added to any
 of the subnets should have their DNS working out of the box with no configuration needed.
 
 The samba setup pretty much exactly followed the instructions in the samba wiki.
